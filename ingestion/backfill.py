@@ -36,3 +36,35 @@ def fetch_range(start, end):
     return pd.DataFrame(rows)
 
 
+def backfill(start_date):
+
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.utcnow()
+
+    current = start
+
+    while current < end:
+
+        next_month = current + relativedelta(months=1)
+
+        print(f"Fetching {current.date()} → {next_month.date()}")
+
+        df = fetch_range(current.date(), next_month.date())
+
+        if not df.empty:
+            df.to_sql(
+                "earthquakes",
+                engine,
+                if_exists="append",
+                index=False,
+                method="multi"
+            )
+
+        current = next_month
+
+        time.sleep(1)  # avoid API abuse
+
+
+
+if __name__ == "__main__":
+    backfill("2020-01-01")
