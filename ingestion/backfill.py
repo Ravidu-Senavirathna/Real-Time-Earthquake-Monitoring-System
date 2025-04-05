@@ -25,7 +25,7 @@ def fetch_range(start, end):
 
         rows.append({
             "id": e["id"],
-            "magnitude": p["mag"],
+            "magnitude": p["mag"] if p["mag"] is not None else 0.0,
             "place": p["place"],
             "event_time": pd.to_datetime(p["time"], unit="ms"),
             "longitude": g[0],
@@ -47,9 +47,9 @@ def backfill(start_date):
 
         next_month = current + relativedelta(months=1)
 
-        print(f"Fetching {current.date()} → {next_month.date()}")
+        print(f"[BACKFILL] {current.strftime('%Y-%m-%d')} → {next_month.strftime('%Y-%m-%d')}")
 
-        df = fetch_range(current.date(), next_month.date())
+        df = fetch_range(current.strftime("%Y-%m-%d"), next_month.strftime("%Y-%m-%d"))
 
         if not df.empty:
             df.to_sql(
@@ -62,7 +62,7 @@ def backfill(start_date):
 
         current = next_month
 
-        time.sleep(1)  # avoid API abuse
+        time.sleep(2)  # avoid API abuse
 
 
 
