@@ -31,3 +31,19 @@ st.subheader("Magnitude Distribution")
 
 fig = px.histogram(df, x="magnitude", nbins=40)
 st.plotly_chart(fig, width='stretch')
+
+
+# World map of earthquakes
+st.subheader("Global Earthquake Map")
+
+fig_map = px.scatter_geo(
+    df,
+    lat="latitude",
+    lon="longitude",
+    color="magnitude",
+    size="magnitude",
+    hover_name="place",
+    projection="natural earth"
+)
+
+st.plotly_chart(fig_map, width='stretch')
