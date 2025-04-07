@@ -27,7 +27,6 @@ filtered = df[df["magnitude"] >= min_mag]
 
 
 # Display key metrics
-st.title("🌍 Earthquake Monitoring System")
 
 col1, col2, col3 = st.columns(3)
 
@@ -56,3 +55,15 @@ fig_map = px.scatter_geo(
 )
 
 st.plotly_chart(fig_map, width='stretch')
+
+
+# Time series of earthquakes
+filtered["event_time"] = pd.to_datetime(filtered["event_time"])
+
+time_df = filtered.groupby(filtered["event_time"].dt.date).size().reset_index()
+time_df.columns = ["date", "count"]
+
+st.subheader("Earthquakes Over Time")
+
+fig2 = px.line(time_df, x="date", y="count")
+st.plotly_chart(fig2, width='stretch')
