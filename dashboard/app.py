@@ -17,19 +17,28 @@ def load_data():
 df = load_data()
 
 
+
+# Sidebar filters
+st.sidebar.header("Filters")
+
+min_mag = st.sidebar.slider("Minimum Magnitude", 0.0, 10.0, 3.0)
+filtered = df[df["magnitude"] >= min_mag]
+
+
+
 # Display key metrics
 st.title("🌍 Earthquake Monitoring System")
 
 col1, col2, col3 = st.columns(3)
 
-col1.metric("Total Earthquakes", len(df))
-col2.metric("Max Magnitude", df["magnitude"].max())
-col3.metric("Avg Magnitude", round(df["magnitude"].mean(), 2))
+col1.metric("Total Earthquakes", len(filtered))
+col2.metric("Max Magnitude", filtered["magnitude"].max())
+col3.metric("Avg Magnitude", round(filtered["magnitude"].mean(), 2))
 
 # Magnitude distribution
 st.subheader("Magnitude Distribution")
 
-fig = px.histogram(df, x="magnitude", nbins=40)
+fig = px.histogram(filtered, x="magnitude", nbins=40)
 st.plotly_chart(fig, width='stretch')
 
 
@@ -37,7 +46,7 @@ st.plotly_chart(fig, width='stretch')
 st.subheader("Global Earthquake Map")
 
 fig_map = px.scatter_geo(
-    df,
+    filtered,
     lat="latitude",
     lon="longitude",
     color="magnitude",
