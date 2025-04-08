@@ -43,7 +43,7 @@ def fetch_range(start, end):
 def backfill(start_date):
 
     start = datetime.strptime(start_date, "%Y-%m-%d")
-    end = datetime.utcnow()
+    end = datetime.now(timezone.utc)
 
     current = start
 
