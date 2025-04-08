@@ -10,7 +10,7 @@ import time
 def fetch_range(start, end):
     url = (
         "https://earthquake.usgs.gov/fdsnws/event/1/query"
-        f"?format=geojson&starttime={start}&endtime={end}"
+        f"?format=geojson&starttime={start}&endtime={end}&minmagnitude=1"
     )
 
     r = requests.get(url, timeout=20)
@@ -59,6 +59,8 @@ def backfill(start_date):
                 index=False,
                 method="multi"
             )
+        else:
+            print("Skipped empty or failed batch")
 
         current = next_month
 
