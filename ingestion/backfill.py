@@ -1,6 +1,6 @@
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 from database.db import engine
 import time
@@ -12,10 +12,14 @@ def fetch_range(start, end):
         "https://earthquake.usgs.gov/fdsnws/event/1/query"
         f"?format=geojson&starttime={start}&endtime={end}&minmagnitude=1"
     )
+    try:
+        r = requests.get(url, timeout=20)
+        r.raise_for_status()
+        data = r.json()
 
-    r = requests.get(url, timeout=20)
-    r.raise_for_status()
-    data = r.json()
+    except requests.RequestException as e:
+        print(f"Error fetching data for {start} to {end}: {e}")
+        return pd.DataFrame()
 
     rows = []
 
