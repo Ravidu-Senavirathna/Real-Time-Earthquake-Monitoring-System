@@ -10,8 +10,11 @@ import time
 def fetch_range(start, end):
     url = (
         "https://earthquake.usgs.gov/fdsnws/event/1/query"
-        f"?format=geojson&starttime={start}&endtime={end}&minmagnitude=1"
+        f"?format=geojson&starttime={start}&endtime={end}&minmagnitude=2"
     )
+
+    print(url)
+
     try:
         r = requests.get(url, timeout=20)
         r.raise_for_status()
@@ -63,6 +66,10 @@ def backfill(start_date):
                 index=False,
                 method="multi"
             )
+
+            print(f"Rows fetched: {len(df)}")
+
+
         else:
             print("Skipped empty or failed batch")
 
