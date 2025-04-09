@@ -48,4 +48,7 @@ def get_live_earthquakes():
 
 print("Fetching earthquake data...")
 df = get_live_earthquakes()
-print(df.head())
+
+
+if __name__ == "__main__":
+    get_live_earthquakes()
