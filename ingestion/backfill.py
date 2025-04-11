@@ -59,6 +59,12 @@ def backfill(start_date):
         df = fetch_range(current.strftime("%Y-%m-%d"), next.strftime("%Y-%m-%d"))
 
         if not df.empty:
+            print(
+                f"[INFO] "
+                f"Fetched {len(df)} earthquakes "
+                f"for {current.strftime('%Y-%m-%d')}"
+            )
+
             df.to_sql(
                 "earthquakes",
                 engine,
@@ -67,7 +73,11 @@ def backfill(start_date):
                 method="multi"
             )
 
-            print(f"Rows fetched: {len(df)}")
+            print(
+                f"[SUCCESS] "
+                f"{current.strftime('%Y-%m-%d')} "
+                f"Rows: {len(df)}"
+            )
 
 
         else:
