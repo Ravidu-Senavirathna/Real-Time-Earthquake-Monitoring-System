@@ -45,18 +45,18 @@ def fetch_range(start, end):
 
 def backfill(start_date):
 
-    start = start = datetime.strptime(start_date,"%Y-%m-%d").replace(tzinfo=timezone.utc)
+    start = datetime.strptime(start_date,"%Y-%m-%d").replace(tzinfo=timezone.utc)
     end = datetime.now(timezone.utc)
 
     current = start
 
     while current < end:
 
-        next = current + relativedelta(days=7)
+        next_date = current + relativedelta(days=7)
 
-        print(f"[BACKFILL] {current.strftime('%Y-%m-%d')} → {next.strftime('%Y-%m-%d')}")
+        print(f"[BACKFILL] {current.strftime('%Y-%m-%d')} → {next_date.strftime('%Y-%m-%d')}")
 
-        df = fetch_range(current.strftime("%Y-%m-%d"), next.strftime("%Y-%m-%d"))
+        df = fetch_range(current.strftime("%Y-%m-%d"), next_date.strftime("%Y-%m-%d"))
 
         if not df.empty:
             print(
@@ -83,11 +83,11 @@ def backfill(start_date):
         else:
             print("Skipped empty or failed batch")
 
-        current = next
+        current = next_date
 
         time.sleep(1)  # avoid API abuse
 
 
 
 if __name__ == "__main__":
-    backfill("2026-01-01")
+    backfill("2026-06-01")
