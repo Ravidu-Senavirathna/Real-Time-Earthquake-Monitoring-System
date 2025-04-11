@@ -27,14 +27,11 @@ def get_live_earthquakes():
         props = event["properties"]
         geo = event["geometry"]["coordinates"]
 
-        print(event)
-        print("")
-
         # Append earthquake data to the list
         earthquakes.append({
             "id": event["id"],
-            "magnitude": props["mag"],
-            "place": props["place"],
+            "magnitude": props.get("mag"),
+            "place": props.get("place"),
             "event_time": pd.to_datetime(
                 props["time"],
                 unit="ms"
