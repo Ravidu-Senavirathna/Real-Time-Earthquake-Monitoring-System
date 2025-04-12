@@ -21,7 +21,7 @@ df = load_data()
 # Sidebar filters
 st.sidebar.header("Filters")
 
-min_mag = st.sidebar.slider("Minimum Magnitude", 0.0, 10.0, 3.0)
+min_mag = st.sidebar.slider("Minimum Magnitude", 0.0, 10.0, 5.0)
 filtered = df[df["magnitude"] >= min_mag]
 
 
