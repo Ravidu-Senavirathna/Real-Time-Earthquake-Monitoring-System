@@ -32,12 +32,31 @@ def fetch_range(start, end):
 
         rows.append({
             "id": e["id"],
-            "magnitude": p["mag"] if p["mag"] is not None else 0.0,
-            "place": p["place"],
-            "event_time": pd.to_datetime(p["time"], unit="ms"),
-            "longitude": g[0],
+
+            "magnitude": p.get("mag"),
+            "magnitude_type": p.get("magType"),
+
+            "place": p.get("place"),
+
+            "event_time": pd.to_datetime(
+                p["time"],
+                unit="ms"
+            ) if p.get("time") else None,
+
+            "updated_time": pd.to_datetime(
+                p["updated"],
+                unit="ms"
+            ) if p.get("updated") else None,
+
             "latitude": g[1],
-            "depth": g[2]
+            "longitude": g[0],
+            "depth": g[2],
+
+            "tsunami": p.get("tsunami"),
+            "significance": p.get("sig"),
+
+            "status": p.get("status"),
+            "event_type": p.get("type")
         })
 
     return pd.DataFrame(rows)
