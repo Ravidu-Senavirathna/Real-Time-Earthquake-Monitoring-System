@@ -16,6 +16,7 @@ Details for each earthquake:
 
 import streamlit as st
 from dashboard.utils import load_data
+import plotly.express as px
 
 st.subheader("🏆 Strongest Earthquakes")
 
@@ -29,7 +30,6 @@ st.dataframe(top)
 
 st.subheader("Strongest Events Map")
 
-import plotly.express as px
 
 fig = px.scatter_geo(
     top,
@@ -41,4 +41,4 @@ fig = px.scatter_geo(
     projection="natural earth"
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')

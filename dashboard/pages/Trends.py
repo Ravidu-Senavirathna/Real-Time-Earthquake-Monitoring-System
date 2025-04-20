@@ -28,8 +28,8 @@ daily = df.groupby(df["event_time"].dt.date).size().reset_index()
 daily.columns = ["date", "count"]
 
 fig = px.line(daily, x="date", y="count", title="Daily Earthquakes")
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')
 
 # Magnitude distribution
 fig2 = px.histogram(df, x="magnitude", nbins=40, title="Magnitude Distribution")
-st.plotly_chart(fig2, use_container_width=True)
+st.plotly_chart(fig2, width='stretch')
