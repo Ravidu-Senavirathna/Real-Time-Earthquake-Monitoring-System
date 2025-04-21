@@ -19,9 +19,16 @@ st.subheader("🌍 Global Earthquake Map")
 
 df = load_data()
 
-min_mag = st.slider("Minimum Magnitude", 0.0, 10.0, 2.5)
 
-filtered = df[df["magnitude"] >= min_mag]
+# Side Bar
+min_mag = st.sidebar.slider("Magnitude", 0.0, 10.0, 2.5)
+only_tsunami = st.sidebar.checkbox("Tsunami Events Only")
+
+
+filtered = df[
+    (df["magnitude"] >= min_mag) & 
+    (df["tsunami"] == only_tsunami)
+    ]
 
 fig = px.scatter_geo(
     filtered,
