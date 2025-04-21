@@ -18,21 +18,38 @@ import streamlit as st
 from dashboard.utils import load_data
 import plotly.express as px
 
-st.subheader("🏆 Strongest Earthquakes")
 
 df = load_data()
 
-top_n = st.slider("Top N", 10, 200, 50)
+# Side Bar
+top_n = st.sidebar.slider("Top N", 10, 200, 50)
+search = st.sidebar.text_input("Search Location")
 
+
+# Filters
 top = df.sort_values("magnitude", ascending=False).head(top_n)
+
+filtered = top[
+    top["place"]
+    .str.contains(
+        search,
+        case=False,
+        na=False
+    )
+]
+
+
+# Titles and Diagrams
+st.subheader("🏆 Strongest Earthquakes")
 
 st.dataframe(top)
 
+
+
 st.subheader("Strongest Events Map")
 
-
 fig = px.scatter_geo(
-    top,
+    filtered,
     lat="latitude",
     lon="longitude",
     size="magnitude",
