@@ -1,9 +1,12 @@
 import requests
 import pandas as pd
+import time
+
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
+
 from database.db import engine
-import time
+from ingestion.transform import parse_earthquake
 
 
 # Backfill earthquake data from a range
@@ -26,38 +29,10 @@ def fetch_range(start, end):
 
     rows = []
 
-    for e in data["features"]:
-        p = e["properties"]
-        g = e["geometry"]["coordinates"]
-
-        rows.append({
-            "id": e["id"],
-
-            "magnitude": p.get("mag"),
-            "magnitude_type": p.get("magType"),
-
-            "place": p.get("place"),
-
-            "event_time": pd.to_datetime(
-                p["time"],
-                unit="ms"
-            ) if p.get("time") else None,
-
-            "updated_time": pd.to_datetime(
-                p["updated"],
-                unit="ms"
-            ) if p.get("updated") else None,
-
-            "latitude": g[1],
-            "longitude": g[0],
-            "depth": g[2],
-
-            "tsunami": p.get("tsunami"),
-            "significance": p.get("sig"),
-
-            "status": p.get("status"),
-            "event_type": p.get("type")
-        })
+    for event in data["features"]:
+        rows.append(
+            parse_earthquake(event)
+        )
 
     return pd.DataFrame(rows)
 
