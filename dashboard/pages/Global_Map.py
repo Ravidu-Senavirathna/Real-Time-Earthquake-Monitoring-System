@@ -25,10 +25,10 @@ min_mag = st.sidebar.slider("Magnitude", 0.0, 10.0, 2.5)
 only_tsunami = st.sidebar.checkbox("Tsunami Events Only")
 
 
-filtered = df[
-    (df["magnitude"] >= min_mag) & 
-    (df["tsunami"] == only_tsunami)
-    ]
+filtered = df[df["magnitude"] >= min_mag]
+
+if only_tsunami:
+    filtered = filtered[filtered["tsunami"] == 1]
 
 fig = px.scatter_geo(
     filtered,

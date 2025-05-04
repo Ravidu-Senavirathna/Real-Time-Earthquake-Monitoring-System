@@ -42,7 +42,7 @@ filtered = top[
 # Titles and Diagrams
 st.subheader("🏆 Strongest Earthquakes")
 
-st.dataframe(top)
+st.dataframe(filtered)
 
 
 
