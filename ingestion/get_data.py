@@ -1,6 +1,8 @@
 import requests
 import pandas as pd
 
+from ingestion.transform import parse_earthquake
+
 # USGS Earthquake API endpoint for all earthquakes in the past hour
 URL = (
     "https://earthquake.usgs.gov/"
@@ -22,29 +24,12 @@ def get_live_earthquakes():
     earthquakes = []
 
     for event in data["features"]:
-
-
-        props = event["properties"]
-        geo = event["geometry"]["coordinates"]
-
-        # Append earthquake data to the list
-        earthquakes.append({
-            "id": event["id"],
-            "magnitude": props.get("mag"),
-            "place": props.get("place"),
-            "event_time": pd.to_datetime(
-                props["time"],
-                unit="ms"
-            ),
-            "longitude": geo[0],
-            "latitude": geo[1],
-            "depth": geo[2]
-        })
+        earthquakes.append(
+            parse_earthquake(event)
+            )
 
     return pd.DataFrame(earthquakes)
 
-print("Fetching earthquake data...")
-df = get_live_earthquakes()
 
 
 if __name__ == "__main__":
