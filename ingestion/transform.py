@@ -3,34 +3,45 @@ import pandas as pd
 
 def parse_earthquake(event):
 
-    props = event["properties"]
-    geo = event["geometry"]["coordinates"]
+    try:
 
-    return {
-        "id": event["id"],
+        props = event["properties"]
+        geo = event["geometry"]["coordinates"]
 
-        "magnitude": props.get("mag"),
-        "magnitude_type": props.get("magType"),
+        return {
+            "id": event["id"],
 
-        "place": props.get("place"),
+            "magnitude": props.get("mag"),
+            "magnitude_type": props.get("magType"),
 
-        "event_time": pd.to_datetime(
-            props["time"],
-            unit="ms"
-        ) if props.get("time") else None,
+            "place": props.get("place"),
 
-        "updated_time": pd.to_datetime(
-            props["updated"],
-            unit="ms"
-        ) if props.get("updated") else None,
+            "event_time": pd.to_datetime(
+                props["time"],
+                unit="ms"
+            ) if props.get("time") else None,
 
-        "latitude": geo[1],
-        "longitude": geo[0],
-        "depth": geo[2],
+            "updated_time": pd.to_datetime(
+                props["updated"],
+                unit="ms"
+            ) if props.get("updated") else None,
 
-        "tsunami": props.get("tsunami"),
-        "significance": props.get("sig"),
+            "latitude": geo[1],
+            "longitude": geo[0],
+            "depth": geo[2],
 
-        "status": props.get("status"),
-        "event_type": props.get("type")
-    }
+            "tsunami": props.get("tsunami"),
+            "significance": props.get("sig"),
+
+            "status": props.get("status"),
+            "event_type": props.get("type")
+        }
+    
+    except Exception as e:
+
+        print(
+            f"[TRANSFORM ERROR] "
+            f"{event.get('id')} : {e}"
+        )
+
+        return None
