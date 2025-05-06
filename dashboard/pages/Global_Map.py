@@ -12,17 +12,22 @@ World map of earthquakes
 
 
 import streamlit as st
-import plotly.express as px
 from dashboard.utils import load_data
 
-st.subheader("🌍 Global Earthquake Map")
-
-df = load_data()
-
+import folium
+from streamlit_folium import st_folium
+from folium.plugins import MarkerCluster, HeatMap
 
 # Side Bar
 min_mag = st.sidebar.slider("Magnitude", 0.0, 10.0, 2.5)
 only_tsunami = st.sidebar.checkbox("Tsunami Events Only")
+
+
+# Title 
+st.subheader("🌍 Global Earthquake Map")
+
+df = load_data()
+map = folium.Map(location=[0, 0], zoom_start=2)
 
 
 filtered = df[df["magnitude"] >= min_mag]
@@ -30,14 +35,27 @@ filtered = df[df["magnitude"] >= min_mag]
 if only_tsunami:
     filtered = filtered[filtered["tsunami"] == 1]
 
-fig = px.scatter_geo(
-    filtered,
-    lat="latitude",
-    lon="longitude",
-    color="magnitude",
-    size="magnitude",
-    hover_name="place",
-    projection="natural earth"
-)
 
-st.plotly_chart(fig, width='stretch')
+heat_data = filtered[
+    ["latitude", "longitude"]
+].values.tolist()
+
+
+HeatMap(heat_data).add_to(map)
+cluster = MarkerCluster().add_to(map)
+
+
+for _, row in filtered.iterrows():
+
+    folium.Marker(
+        location=[
+            row["latitude"],
+            row["longitude"]
+        ],
+        popup=f"""
+        <b>{row['place']}</b>
+        <br>Magnitude: {row['magnitude']}
+        """
+    ).add_to(cluster)
+
+st_folium(map, width='stretch', height=700)
