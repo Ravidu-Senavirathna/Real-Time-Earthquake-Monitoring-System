@@ -8,3 +8,5 @@ python-dotenv
 pytest
 black
 ruff
+folium
+streamlit-folium
