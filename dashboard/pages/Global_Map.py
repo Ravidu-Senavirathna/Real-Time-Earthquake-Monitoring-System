@@ -56,17 +56,22 @@ if only_tsunami:
 
 if show_heatmap:
 
-    heat_data = filtered[["latitude", "longitude"]].values.tolist()
+    heat_layer = folium.FeatureGroup(name="Heatmap")
+    heat_layer.add_to(map)
+
+    heat_data = filtered[["latitude", "longitude", "magnitude"]].values.tolist()
 
     HeatMap(
         heat_data,
         radius=13,
-        blur=4
-        ).add_to(map)
+        blur=5
+        ).add_to(heat_layer)
     
 
 else:
-    cluster = MarkerCluster().add_to(map)
+
+    marker_layer = folium.FeatureGroup(name="Earthquake Markers")
+    marker_layer.add_to(map)
 
     for _, row in filtered.iterrows():
 
@@ -79,6 +84,8 @@ else:
             Magnitude: {row['magnitude']},
             Depth: {row['depth']}
             """
-        ).add_to(cluster)
+        ).add_to(marker_layer)
+
+
 
 st_folium(map, width='stretch', height=700)
