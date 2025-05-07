@@ -37,6 +37,7 @@ from folium.plugins import MarkerCluster, HeatMap
 # Side Bar
 min_mag = st.sidebar.slider("Magnitude", 0.0, 10.0, 2.5)
 only_tsunami = st.sidebar.checkbox("Tsunami Events Only")
+show_heatmap = st.sidebar.checkbox("Show Heatmap", value=False)
 
 
 # Title 
@@ -52,26 +53,32 @@ if only_tsunami:
     filtered = filtered[filtered["tsunami"] == 1]
 
 
-heat_data = filtered[
-    ["latitude", "longitude"]
-].values.tolist()
 
+if show_heatmap:
 
-HeatMap(heat_data).add_to(map)
-cluster = MarkerCluster().add_to(map)
+    heat_data = filtered[["latitude", "longitude"]].values.tolist()
 
+    HeatMap(
+        heat_data,
+        radius=13,
+        blur=4
+        ).add_to(map)
+    
 
-for _, row in filtered.iterrows():
+else:
+    cluster = MarkerCluster().add_to(map)
 
-    folium.CircleMarker(
-        location=[row["latitude"], row["longitude"]],
-        radius=max(row["magnitude"] * 2, 3),
-        color=get_color(row["magnitude"]),
-        fill=True,
-        popup=f"""
-        Magnitude: {row['magnitude']},
-        Depth: {row['depth']}
-         """
-    ).add_to(cluster)
+    for _, row in filtered.iterrows():
+
+        folium.CircleMarker(
+            location=[row["latitude"], row["longitude"]],
+            radius=max(row["magnitude"] * 2, 3),
+            color=get_color(row["magnitude"]),
+            fill=True,
+            popup=f"""
+            Magnitude: {row['magnitude']},
+            Depth: {row['depth']}
+            """
+        ).add_to(cluster)
 
 st_folium(map, width='stretch', height=700)
