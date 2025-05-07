@@ -63,15 +63,15 @@ cluster = MarkerCluster().add_to(map)
 
 for _, row in filtered.iterrows():
 
-    folium.Marker(
-        location=[
-            row["latitude"],
-            row["longitude"]
-        ],
+    folium.CircleMarker(
+        location=[row["latitude"], row["longitude"]],
+        radius=max(row["magnitude"] * 2, 3),
+        color=get_color(row["magnitude"]),
+        fill=True,
         popup=f"""
-        <b>{row['place']}</b>
-        <br>Magnitude: {row['magnitude']}
-        """
+        Magnitude: {row['magnitude']},
+        Depth: {row['depth']}
+         """
     ).add_to(cluster)
 
 st_folium(map, width='stretch', height=700)
