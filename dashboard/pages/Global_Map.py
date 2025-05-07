@@ -11,6 +11,22 @@ World map of earthquakes
 '''
 
 
+def get_color(mag):
+
+    if mag >= 7:
+        return "red"
+
+    elif mag >= 5:
+        return "orange"
+
+    elif mag >= 3:
+        return "yellow"
+
+    return "blue"
+
+
+
+
 import streamlit as st
 from dashboard.utils import load_data
 
