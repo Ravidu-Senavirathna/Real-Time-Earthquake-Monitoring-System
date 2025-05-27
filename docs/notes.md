@@ -8,6 +8,12 @@ Run all of these in the root directory
 python -m ingestion.backfill
 ```
 
+* data quality check
+
+```bash
+python -m ingestion.quality_data
+```
+
 * to get live data
 
 ```bash
