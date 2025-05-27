@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 
 from database.db import engine
 from ingestion.transform import parse_earthquake
+from ingestion.validation import validate_earthquake
 
 
 # Backfill earthquake data from a range
@@ -30,9 +31,11 @@ def fetch_range(start, end):
     rows = []
 
     for event in data["features"]:
-        rows.append(
-            parse_earthquake(event)
-        )
+        row = parse_earthquake(event)
+        
+        if rows:
+            if validate_earthquake(row):
+                rows.append(row)
 
     return pd.DataFrame(rows)
 

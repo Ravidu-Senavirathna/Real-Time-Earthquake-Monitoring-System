@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 
 from ingestion.transform import parse_earthquake
+from ingestion.validation import validate_earthquake
 
 # USGS Earthquake API endpoint for all earthquakes in the past hour
 URL = (
@@ -24,9 +25,12 @@ def get_live_earthquakes():
     earthquakes = []
 
     for event in data["features"]:
-        earthquakes.append(
-            parse_earthquake(event)
-            )
+
+        row = parse_earthquake(event)
+
+        if row:
+            if validate_earthquake(row):
+                earthquakes.append(row)
 
     return pd.DataFrame(earthquakes)
 
