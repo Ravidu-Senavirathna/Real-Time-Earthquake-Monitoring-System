@@ -12,7 +12,10 @@ def load_data():
     """
     df = pd.read_sql(query, engine)
 
-    df["event_time"] = pd.to_datetime(df["event_time"])
+    df["event_time"] = pd.to_datetime(
+        df["event_time"],
+        utc=True
+    )
 
     return df
 

@@ -18,12 +18,14 @@ def parse_earthquake(event):
 
             "event_time": pd.to_datetime(
                 props["time"],
-                unit="ms"
+                unit="ms",
+                utc=True
             ) if props.get("time") else None,
 
             "updated_time": pd.to_datetime(
                 props["updated"],
-                unit="ms"
+                unit="ms",
+                utc=True
             ) if props.get("updated") else None,
 
             "latitude": geo[1],
