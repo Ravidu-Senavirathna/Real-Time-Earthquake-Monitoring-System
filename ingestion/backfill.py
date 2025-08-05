@@ -14,7 +14,7 @@ from ingestion.validation import validate_earthquake
 def fetch_range(start, end):
     url = (
         "https://earthquake.usgs.gov/fdsnws/event/1/query"
-        f"?format=geojson&starttime={start}&endtime={end}&minmagnitude=2"
+        f"?format=geojson&starttime={start}&endtime={end}&minmagnitude=1.5"
     )
 
     print(url)
@@ -33,7 +33,7 @@ def fetch_range(start, end):
     for event in data["features"]:
         row = parse_earthquake(event)
         
-        if rows:
+        if row is not None:
             if validate_earthquake(row):
                 rows.append(row)
 
@@ -87,4 +87,4 @@ def backfill(start_date):
 
 
 if __name__ == "__main__":
-    backfill("2026-06-01")
+    backfill("2026-01-01")
