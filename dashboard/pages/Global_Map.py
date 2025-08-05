@@ -44,7 +44,9 @@ show_heatmap = st.sidebar.checkbox("Show Heatmap", value=False)
 st.subheader("🌍 Global Earthquake Map")
 
 df = load_data()
-map = folium.Map(location=[0, 0], zoom_start=2)
+map = folium.Map(location=[0, 0], 
+                 zoom_start=2,
+                 tiles='CartoDB dark_matter')
 
 
 filtered = df[df["magnitude"] >= min_mag]
