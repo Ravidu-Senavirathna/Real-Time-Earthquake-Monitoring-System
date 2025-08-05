@@ -11,7 +11,7 @@ python -m ingestion.backfill
 * data quality check
 
 ```bash
-python -m ingestion.quality_data
+python -m ingestion.quality_checks
 ```
 
 * to get live data
