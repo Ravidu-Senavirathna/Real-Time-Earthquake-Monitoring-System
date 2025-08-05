@@ -6,8 +6,8 @@ CREATE TABLE earthquakes (
 
     place TEXT,
 
-    event_time TIMESTAMPZ,
-    updated_time TIMESTAMPZ,
+    event_time TIMESTAMPTZ,
+    updated_time TIMESTAMPTZ,
 
     latitude FLOAT,
     longitude FLOAT,
