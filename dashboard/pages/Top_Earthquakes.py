@@ -43,15 +43,17 @@ search = st.sidebar.text_input("Search Location")
 
 # Filters
 top = df.sort_values("magnitude", ascending=False).head(top_n)
+filtered = top
 
-filtered = top[
-    top["place"]
-    .str.contains(
-        search,
-        case=False,
-        na=False
-    )
-]
+if search:
+    filtered = top[
+        top["place"]
+        .str.contains(
+            search,
+            case=False,
+            na=False
+        )
+    ]
 
 
 # Titles and Diagrams
