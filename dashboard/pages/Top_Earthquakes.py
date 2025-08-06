@@ -65,14 +65,32 @@ st.dataframe(filtered)
 
 st.subheader("Strongest Events Map")
 
-fig = px.scatter_geo(
-    filtered,
-    lat="latitude",
-    lon="longitude",
-    size="magnitude",
-    color="magnitude",
-    hover_name="place",
-    projection="natural earth"
+map = folium.Map(
+    location=[0, 0],
+    zoom_start=2,
+    tiles="CartoDB dark_matter"
 )
 
-st.plotly_chart(fig, width='stretch')
+for _, row in filtered.iterrows():
+
+    CircleMarker(
+        location=[row["latitude"], row["longitude"]],
+        radius=max(row["magnitude"] * 1.5, 5),
+        color=get_color(row["magnitude"]),
+        fill=True,
+        fill_color=get_color(row["magnitude"]),
+        fill_opacity=0.8,
+        weight=1,
+        popup=Popup(
+            f"""
+            <b>{row['place']}</b><br>
+            Date: {row['event_time']}<br>
+            Magnitude: {row['magnitude']}<br>
+            Depth: {row['depth']} km
+            """,
+            max_width=250
+        )
+    ).add_to(map)
+
+
+st_folium(map, width="stretch", height=700)
