@@ -68,6 +68,8 @@ st.subheader("Strongest Events Map")
 map = folium.Map(
     location=[0, 0],
     zoom_start=2,
+    min_zoom = 2,
+    max_zoom = 12,
     tiles="CartoDB dark_matter"
 )
 
