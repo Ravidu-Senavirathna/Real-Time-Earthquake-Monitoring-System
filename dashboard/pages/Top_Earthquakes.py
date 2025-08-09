@@ -13,26 +13,19 @@ Details for each earthquake:
 - Tsunami potential
 '''
 
-def get_color(mag):
-
-    if mag >= 7:
-        return "red"
-
-    elif mag >= 5:
-        return "orange"
-
-    elif mag >= 3:
-        return "yellow"
-
-    return "blue"
 
 from folium import CircleMarker, Popup, folium
 from streamlit_folium import st_folium
 
 import streamlit as st
 from dashboard.utils import load_data
-import plotly.express as px
+import utils
 
+Global_Map = folium.Map(location=[0, 0], 
+                 zoom_start=2,
+                 min_zoom = 2,
+                 max_zoom = 12,
+                 tiles='CartoDB dark_matter')
 
 df = load_data()
 
@@ -65,22 +58,15 @@ st.dataframe(filtered)
 
 st.subheader("Strongest Events Map")
 
-map = folium.Map(
-    location=[0, 0],
-    zoom_start=2,
-    min_zoom = 2,
-    max_zoom = 12,
-    tiles="CartoDB dark_matter"
-)
 
 for _, row in filtered.iterrows():
 
     CircleMarker(
         location=[row["latitude"], row["longitude"]],
         radius=max(row["magnitude"] * 1.5, 5),
-        color=get_color(row["magnitude"]),
+        color=utils.get_color(row["magnitude"]),
         fill=True,
-        fill_color=get_color(row["magnitude"]),
+        fill_color=utils.get_color(row["magnitude"]),
         fill_opacity=0.8,
         weight=1,
         popup=Popup(
@@ -92,7 +78,7 @@ for _, row in filtered.iterrows():
             """,
             max_width=250
         )
-    ).add_to(map)
+    ).add_to(Global_Map)
 
 
-st_folium(map, width="stretch", height=700)
+st_folium(Global_Map, width="stretch", height=700)
