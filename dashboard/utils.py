@@ -1,3 +1,4 @@
+import folium
 import pandas as pd
 from database.db import engine
 import streamlit as st
@@ -34,3 +35,17 @@ def get_monthly_stats():
 
 def get_recent_events():
     pass
+
+
+def get_color(mag):
+
+    if mag >= 7:
+        return "red"
+
+    elif mag >= 5:
+        return "orange"
+
+    elif mag >= 2.5:
+        return "yellow"
+
+    return "blue"
