@@ -11,28 +11,26 @@ World map of earthquakes
 '''
 
 
-def get_color(mag):
-
-    if mag >= 7:
-        return "red"
-
-    elif mag >= 5:
-        return "orange"
-
-    elif mag >= 3:
-        return "yellow"
-
-    return "blue"
-
-
-
 
 import streamlit as st
 from dashboard.utils import load_data
 
 import folium
 from streamlit_folium import st_folium
-from folium.plugins import MarkerCluster, HeatMap
+from folium.plugins import HeatMap
+import utils
+
+
+
+Global_Map = folium.Map(location=[0, 0], 
+                 zoom_start=2,
+                 min_zoom = 2,
+                 max_zoom = 12,
+                 tiles='CartoDB dark_matter')
+
+df = load_data()
+
+
 
 # Side Bar
 min_mag = st.sidebar.slider("Magnitude", 0.0, 10.0, 2.5)
@@ -43,12 +41,6 @@ show_heatmap = st.sidebar.checkbox("Show Heatmap", value=False)
 # Title 
 st.subheader("🌍 Global Earthquake Map")
 
-df = load_data()
-map = folium.Map(location=[0, 0], 
-                 zoom_start=2,
-                 min_zoom = 2,
-                 max_zoom = 12,
-                 tiles='CartoDB dark_matter')
 
 
 filtered = df[df["magnitude"] >= min_mag]
@@ -61,7 +53,7 @@ if only_tsunami:
 if show_heatmap:
 
     heat_layer = folium.FeatureGroup(name="Heatmap")
-    heat_layer.add_to(map)
+    heat_layer.add_to(Global_Map)
 
     heat_data = filtered[["latitude", "longitude", "magnitude"]].values.tolist()
 
@@ -75,14 +67,14 @@ if show_heatmap:
 else:
 
     marker_layer = folium.FeatureGroup(name="Earthquake Markers")
-    marker_layer.add_to(map)
+    marker_layer.add_to(Global_Map)
 
     for _, row in filtered.iterrows():
 
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
             radius=max(row["magnitude"] * 2, 3),
-            color=get_color(row["magnitude"]),
+            color=utils.get_color(row["magnitude"]),
             fill=True,
             popup=f"""
             Magnitude: {row['magnitude']},
@@ -92,4 +84,4 @@ else:
 
 
 
-st_folium(map, width='stretch', height=700)
+st_folium(Global_Map, width='stretch', height=700)
