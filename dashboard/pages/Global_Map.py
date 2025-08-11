@@ -76,10 +76,15 @@ else:
             radius=max(row["magnitude"] * 2, 3),
             color=utils.get_color(row["magnitude"]),
             fill=True,
-            popup=f"""
-            Magnitude: {row['magnitude']},
+            popup= folium.Popup(f"""
+            <b>{row['place']}</b><br>
+            Date: {row['event_date']}<br>
+            Time: {row['event_clock']}<br>
+            Magnitude: {row['magnitude']}<br>
             Depth: {row['depth']}
-            """
+            """,
+            max_width=250
+            )
         ).add_to(marker_layer)
 
 
