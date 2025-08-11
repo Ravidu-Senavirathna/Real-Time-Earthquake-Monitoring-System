@@ -72,7 +72,8 @@ for _, row in filtered.iterrows():
         popup=Popup(
             f"""
             <b>{row['place']}</b><br>
-            Date: {row['event_time']}<br>
+            Date: {row['event_date']}<br>
+            Time: {row['event_clock']}<br>
             Magnitude: {row['magnitude']}<br>
             Depth: {row['depth']} km
             """,
