@@ -8,15 +8,15 @@ import streamlit as st
 
 def load_data():
     query = """
-        SELECT *
-        FROM earthquakes
+    SELECT * 
+    FROM earthquakes
     """
     df = pd.read_sql(query, engine)
 
-    df["event_time"] = pd.to_datetime(
-        df["event_time"],
-        utc=True
-    )
+    df["event_time"] = pd.to_datetime(df["event_time"], utc=True)
+
+    df["event_date"] = df["event_time"].dt.date
+    df["event_clock"] = df["event_time"].dt.strftime("%H:%M:%S")
 
     return df
 
