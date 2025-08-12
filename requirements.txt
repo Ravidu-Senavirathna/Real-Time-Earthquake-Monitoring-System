@@ -10,3 +10,4 @@ black
 ruff
 folium
 streamlit-folium
+pyspark
