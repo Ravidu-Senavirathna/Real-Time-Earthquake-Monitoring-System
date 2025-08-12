@@ -52,7 +52,14 @@ if search:
 # Titles and Diagrams
 st.subheader("🏆 Strongest Earthquakes")
 
-st.dataframe(filtered)
+st.dataframe(filtered[[
+    "place",
+    "event_date",
+    "event_clock",
+    "magnitude",
+    "depth",
+    "tsunami"
+]])
 
 
 

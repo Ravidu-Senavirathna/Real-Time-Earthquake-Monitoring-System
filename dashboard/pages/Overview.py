@@ -37,4 +37,12 @@ coll2.metric("Tsunami Events", tsunami_count)
 coll3.metric("Total Reviewed", reviewed)
 
 st.subheader("Latest Earthquakes")
-st.dataframe(df.sort_values("event_time", ascending=False).head(10))
+df = df.sort_values("event_clock", ascending=False).head(10)
+st.dataframe(df[[
+    "place",
+    "event_date",
+    "event_clock",
+    "magnitude",
+    "depth",
+    "tsunami"
+]])
