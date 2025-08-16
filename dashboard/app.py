@@ -1,5 +1,7 @@
 import streamlit as st
 
+st.set_page_config(layout="wide")
+
 st.title("Earthquake Monitoring System")
 
 
@@ -12,5 +14,3 @@ page_4 = st.Page("pages/Top_Earthquakes.py", title="Analysis")
 # Pass pages into st.navigation
 nav = st.navigation([page_1, page_2, page_3, page_4])
 nav.run()
-
-st.set_page_config(layout="wide")
