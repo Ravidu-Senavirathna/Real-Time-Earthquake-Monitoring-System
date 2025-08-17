@@ -18,16 +18,15 @@ from folium import CircleMarker, Popup, folium
 from streamlit_folium import st_folium
 
 import streamlit as st
-from dashboard.utils import load_data
-import utils
+from dashboard.utils import get_top_earthquakes, get_color
 
-Global_Map = folium.Map(location=[0, 0], 
-                 zoom_start=2,
-                 min_zoom = 2,
-                 max_zoom = 12,
-                 tiles='CartoDB dark_matter')
 
-df = load_data()
+Global_Map = folium.Map(
+    location=[0, 0], zoom_start=2, min_zoom=2, max_zoom=12,
+    tiles='CartoDB dark_matter',
+)
+
+
 
 # Side Bar
 top_n = st.sidebar.slider("Top N", 10, 200, 50)
@@ -35,7 +34,7 @@ search = st.sidebar.text_input("Search Location")
 
 
 # Filters
-top = df.sort_values("magnitude", ascending=False).head(top_n)
+top = get_top_earthquakes(top_n)
 filtered = top
 
 if search:
@@ -44,7 +43,8 @@ if search:
         .str.contains(
             search,
             case=False,
-            na=False
+            na=False,
+            regex=False
         )
     ]
 
@@ -71,9 +71,9 @@ for _, row in filtered.iterrows():
     CircleMarker(
         location=[row["latitude"], row["longitude"]],
         radius=max(row["magnitude"] * 1.5, 5),
-        color=utils.get_color(row["magnitude"]),
+        color=get_color(row["magnitude"]),
         fill=True,
-        fill_color=utils.get_color(row["magnitude"]),
+        fill_color=get_color(row["magnitude"]),
         fill_opacity=0.8,
         weight=1,
         popup=Popup(

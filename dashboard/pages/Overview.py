@@ -1,48 +1,22 @@
-# Overview page for the dashboard
-
-# Mainly used to display key metrics and summaries for the user. 
-# This page provides a quick glance at the most important information
-
-'''
-Total Earthquakes
-Average Magnitude
-Maximum Magnitude
-Strongest Earthquake Location
-Tsunami Events
-'''
-
 import streamlit as st
-from dashboard.utils import load_data
-import pandas as pd
+from dashboard.utils import get_overview_stats, get_recent_events
 
-st.subheader("🌍 Overview")
+st.subheader("Overview")
+stats = get_overview_stats()
+if not stats["total"]:
+    st.info("No earthquakes available. Run ingestion to populate the database.")
+    st.stop()
 
-df = load_data()
-
-strongest = df.loc[df["magnitude"].idxmax()]
-tsunami_count = df[df["tsunami"] == 1].shape[0]
-reviewed = df[df["status"] == "reviewed"].shape[0]
-
-# KPIs
 col1, col2, col3 = st.columns(3)
-
-col1.metric("Total Earthquakes", len(df))
-col2.metric("Max Magnitude", round(df["magnitude"].max(), 2))
-col3.metric("Avg Magnitude", round(df["magnitude"].mean(), 2))
-
+col1.metric("Total Earthquakes", int(stats["total"]))
+col2.metric("Max Magnitude", round(stats["max_magnitude"], 2) if stats["max_magnitude"] is not None else "N/A")
+col3.metric("Avg Magnitude", round(stats["avg_magnitude"], 2) if stats["avg_magnitude"] is not None else "N/A")
 coll1, coll2, coll3 = st.columns(3)
-
-coll1.metric("Strongest Event", strongest["magnitude"])
-coll2.metric("Tsunami Events", tsunami_count)
-coll3.metric("Total Reviewed", reviewed)
+coll1.metric("Strongest Event", stats["max_magnitude"])
+coll2.metric("Tsunami Events", int(stats["tsunami_count"]))
+coll3.metric("Total Reviewed", int(stats["reviewed"]))
 
 st.subheader("Latest Earthquakes")
-df = df.sort_values("event_clock", ascending=False).head(10)
-st.dataframe(df[[
-    "place",
-    "event_date",
-    "event_clock",
-    "magnitude",
-    "depth",
-    "tsunami"
+st.dataframe(get_recent_events()[[
+    "place", "event_date", "event_clock", "magnitude", "depth", "tsunami"
 ]])
