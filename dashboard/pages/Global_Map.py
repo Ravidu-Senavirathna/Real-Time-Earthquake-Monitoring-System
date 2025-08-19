@@ -4,14 +4,6 @@ from dashboard.map_style import create_dark_map
 # This page displays a world map of all recorded earthquakes, allowing users to visualize their locations and magnitudes.
 # It provides an interactive map view for exploring earthquake data across different regions.
 
-'''
-World map of earthquakes
-- Location
-- Magnitude
-- Time of occurrence
-'''
-
-
 
 import streamlit as st
 from dashboard.utils import load_map_data, get_color
@@ -45,9 +37,6 @@ st.subheader("🌍 Global Earthquake Map")
 
 
 filtered = load_map_data(days, min_mag, only_tsunami)
-st.caption(f"Showing {len(filtered):,} events (maximum 2,000 most recent matches). Times are UTC.")
-if filtered.empty:
-    st.info("No events match these filters. Try All dates, a lower magnitude, or turning off Tsunami Events Only.")
 
 if show_heatmap and not filtered.empty:
 

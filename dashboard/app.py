@@ -2,8 +2,6 @@ import streamlit as st
 
 st.set_page_config(layout="wide")
 
-st.title("Earthquake Monitoring System")
-
 
 # Define your page objects
 page_1 = st.Page("pages/Overview.py", title="Overview")
