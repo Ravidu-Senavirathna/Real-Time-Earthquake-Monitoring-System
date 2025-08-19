@@ -1,3 +1,4 @@
+from dashboard.map_style import create_dark_map
 # World map of earthquakes
 
 # This page displays a world map of all recorded earthquakes, allowing users to visualize their locations and magnitudes.
@@ -22,10 +23,7 @@ from folium.plugins import HeatMap
 
 
 
-Global_Map = folium.Map(
-    location=[0, 0], zoom_start=2, min_zoom=2, max_zoom=12,
-    tiles='CartoDB dark_matter',
-)
+Global_Map = create_dark_map()
 
 
 

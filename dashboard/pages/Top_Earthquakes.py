@@ -1,3 +1,4 @@
+from dashboard.map_style import create_dark_map
 # Top Earthquakes Page
 
 # This page focuses on displaying the most significant earthquakes that have occurred recently.
@@ -21,10 +22,7 @@ import streamlit as st
 from dashboard.utils import get_top_earthquakes, get_color
 
 
-Global_Map = folium.Map(
-    location=[0, 0], zoom_start=2, min_zoom=2, max_zoom=12,
-    tiles='CartoDB dark_matter',
-)
+Global_Map = create_dark_map()
 
 
 
