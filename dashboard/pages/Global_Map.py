@@ -13,26 +13,29 @@ World map of earthquakes
 
 
 import streamlit as st
-from dashboard.utils import load_data
+from dashboard.utils import load_map_data, get_color
 
 import folium
 from streamlit_folium import st_folium
 from folium.plugins import HeatMap
-import utils
 
 
 
-Global_Map = folium.Map(location=[0, 0], 
-                 zoom_start=2,
-                 min_zoom = 2,
-                 max_zoom = 12,
-                 tiles='CartoDB dark_matter')
 
-df = load_data()
+Global_Map = folium.Map(
+    location=[0, 0], zoom_start=2, min_zoom=2, max_zoom=12,
+    tiles='CartoDB dark_matter',
+)
+
+
 
 
 
 # Side Bar
+days = st.sidebar.selectbox(
+    "Date range", [1, 7, 30, 90, 365, None], index=1,
+    format_func=lambda value: "All dates" if value is None else f"Past {value} days",
+)
 min_mag = st.sidebar.slider("Magnitude", 0.0, 10.0, 2.5)
 only_tsunami = st.sidebar.checkbox("Tsunami Events Only")
 show_heatmap = st.sidebar.checkbox("Show Heatmap", value=False)
@@ -43,14 +46,12 @@ st.subheader("🌍 Global Earthquake Map")
 
 
 
-filtered = df[df["magnitude"] >= min_mag]
+filtered = load_map_data(days, min_mag, only_tsunami)
+st.caption(f"Showing {len(filtered):,} events (maximum 2,000 most recent matches). Times are UTC.")
+if filtered.empty:
+    st.info("No events match these filters. Try All dates, a lower magnitude, or turning off Tsunami Events Only.")
 
-if only_tsunami:
-    filtered = filtered[filtered["tsunami"] == 1]
-
-
-
-if show_heatmap:
+if show_heatmap and not filtered.empty:
 
     heat_layer = folium.FeatureGroup(name="Heatmap")
     heat_layer.add_to(Global_Map)
@@ -74,7 +75,7 @@ else:
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
             radius=max(row["magnitude"] * 2, 3),
-            color=utils.get_color(row["magnitude"]),
+            color=get_color(row["magnitude"]),
             fill=True,
             popup= folium.Popup(f"""
             <b>{row['place']}</b><br>
@@ -89,4 +90,4 @@ else:
 
 
 
-st_folium(Global_Map, width='stretch', height=700)
+st_folium(Global_Map, use_container_width=True, height=700, returned_objects=[])

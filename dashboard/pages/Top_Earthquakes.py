@@ -89,4 +89,4 @@ for _, row in filtered.iterrows():
     ).add_to(Global_Map)
 
 
-st_folium(Global_Map, width="stretch", height=700)
+st_folium(Global_Map, use_container_width=True, height=700, returned_objects=[])

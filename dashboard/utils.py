@@ -11,9 +11,22 @@ def format_events(df):
     return df
 
 
-@st.cache_data(ttl=300)
-def load_data():
-    return format_events(pd.read_sql("SELECT * FROM earthquakes", engine))
+@st.cache_data(ttl=300, max_entries=64)
+def load_map_data(days, min_mag, only_tsunami, limit=2000):
+    query = text("""
+        SELECT place, event_time, magnitude, depth, tsunami, latitude, longitude
+        FROM earthquakes
+        WHERE (:days IS NULL OR event_time >= CURRENT_TIMESTAMP - (:days * INTERVAL '1 day'))
+          AND magnitude >= :min_mag
+          AND (:only_tsunami = FALSE OR tsunami = 1)
+          AND latitude IS NOT NULL AND longitude IS NOT NULL
+        ORDER BY event_time DESC
+        LIMIT :limit
+    """)
+    return format_events(pd.read_sql(query, engine, params={
+        "days": days, "min_mag": min_mag,
+        "only_tsunami": only_tsunami, "limit": limit,
+    }))
 
 
 @st.cache_data(ttl=300)
