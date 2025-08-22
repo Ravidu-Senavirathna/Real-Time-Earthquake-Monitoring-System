@@ -10,6 +10,7 @@ from ingestion.historical_download import (
     fetch_range,
     main,
     request_params,
+    request_with_retries,
     save_response,
     split_windows,
 )
@@ -48,8 +49,8 @@ def test_invalid_dates_make_no_http_request(start, end):
 
 
 def test_http_failure_is_not_treated_as_an_empty_range():
-    response = Mock(status_code=500)
-    response.raise_for_status.side_effect = requests.HTTPError("server error")
+    response = Mock(status_code=400)
+    response.raise_for_status.side_effect = requests.HTTPError("invalid request")
     with patch("ingestion.historical_download.requests.get", return_value=response):
         with pytest.raises(requests.HTTPError):
             fetch_range("2026-01-01", "2026-01-02")
@@ -167,3 +168,56 @@ def test_unsplittable_window_stops_instead_of_looping():
     ):
         with pytest.raises(ValueError, match="one-millisecond"):
             list(split_windows(start, start + timedelta(milliseconds=1)))
+
+
+@pytest.mark.parametrize("status", [429, 500, 502, 503, 504])
+def test_temporary_http_failure_recovers(status):
+    failed, success = Mock(status_code=status), Mock(status_code=200)
+    with patch(
+        "ingestion.historical_download.requests.get", side_effect=[failed, success]
+    ) as get:
+        with patch("ingestion.historical_download.time.sleep") as sleep:
+            assert request_with_retries("https://example.test", {}) is success
+    assert get.call_count == 2
+    sleep.assert_called_once_with(1)
+
+
+@pytest.mark.parametrize("error", [requests.ConnectionError, requests.Timeout])
+def test_network_failure_recovers(error):
+    success = Mock(status_code=200)
+    with patch(
+        "ingestion.historical_download.requests.get",
+        side_effect=[error("temporary"), success],
+    ):
+        with patch("ingestion.historical_download.time.sleep"):
+            assert request_with_retries("https://example.test", {}) is success
+
+
+@pytest.mark.parametrize("failure", ["network", "http"])
+def test_retries_stop_after_four_attempts(failure):
+    response = Mock(status_code=503)
+    response.raise_for_status.side_effect = requests.HTTPError("unavailable")
+    kwargs = (
+        {"side_effect": requests.ConnectionError("offline")}
+        if failure == "network"
+        else {"return_value": response}
+    )
+    with patch("ingestion.historical_download.requests.get", **kwargs) as get:
+        with patch("ingestion.historical_download.time.sleep") as sleep:
+            with pytest.raises(requests.RequestException):
+                request_with_retries("https://example.test", {})
+    assert get.call_count == 4
+    assert [call.args[0] for call in sleep.call_args_list] == [1, 2, 4]
+
+
+def test_permanent_http_failure_is_not_retried():
+    response = Mock(status_code=400)
+    response.raise_for_status.side_effect = requests.HTTPError("bad request")
+    with patch(
+        "ingestion.historical_download.requests.get", return_value=response
+    ) as get:
+        with patch("ingestion.historical_download.time.sleep") as sleep:
+            with pytest.raises(requests.HTTPError):
+                request_with_retries("https://example.test", {})
+    get.assert_called_once()
+    sleep.assert_not_called()

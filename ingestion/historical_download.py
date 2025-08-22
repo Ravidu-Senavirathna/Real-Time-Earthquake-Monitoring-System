@@ -5,11 +5,29 @@ from datetime import datetime, timedelta, timezone
 import gzip
 import json
 from pathlib import Path
+import time
 
 import requests
 
 API_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 MAX_EVENTS = 20000
+RETRY_STATUSES = {429, 500, 502, 503, 504}
+
+
+def request_with_retries(url, params):
+    """Try a GET at most four times, waiting 1, 2 and 4 seconds between attempts."""
+    for attempt in range(4):
+        try:
+            response = requests.get(url, params=params, timeout=(10, 60))
+        except (requests.ConnectionError, requests.Timeout):
+            if attempt == 3:
+                raise
+        else:
+            if response.status_code not in RETRY_STATUSES or attempt == 3:
+                response.raise_for_status()
+                return response
+            response.close()
+        time.sleep(2**attempt)
 
 
 def date_range(start_date, end_date):
@@ -32,12 +50,10 @@ def request_params(start, end):
 
 def split_windows(start, end):
     """Yield disjoint windows and expected counts that fit the catalog limit."""
-    response = requests.get(
+    response = request_with_retries(
         API_URL.removesuffix("query") + "count",
         params=request_params(start, end),
-        timeout=(10, 60),
     )
-    response.raise_for_status()
     count = int(response.text)
     if count < 0:
         raise ValueError("USGS returned a negative event count")
@@ -57,16 +73,14 @@ def fetch_range(start_date, end_date):
 
 
 def fetch_window(start, end):
-    response = requests.get(
+    response = request_with_retries(
         API_URL,
         params={
             "format": "geojson",
             **request_params(start, end),
             "orderby": "time-asc",
         },
-        timeout=(10, 60),
     )
-    response.raise_for_status()
     if response.status_code == 204:
         return {"type": "FeatureCollection", "features": []}
     payload = response.json()
