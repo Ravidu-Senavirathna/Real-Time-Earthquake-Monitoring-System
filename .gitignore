@@ -2,3 +2,6 @@
 .env
 *.pyc
 agent.md
+data/historical/
+.pytest_cache/
+.pytest-download/
