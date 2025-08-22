@@ -4,6 +4,7 @@ import argparse
 from datetime import datetime, timedelta, timezone
 import gzip
 import json
+import os
 from pathlib import Path
 import time
 
@@ -102,6 +103,40 @@ def save_response(payload, output):
     return output
 
 
+def save_checkpoint(path, state):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    try:
+        temporary.write_text(json.dumps(state), encoding="utf-8")
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def prepare_checkpoint(path, start_date, end_date, output):
+    request = {
+        "start": start_date,
+        "end": end_date,
+        "output": str(output.resolve()),
+        "api": API_URL,
+        "eventtype": "earthquake",
+    }
+    if path.exists():
+        state = json.loads(path.read_text(encoding="utf-8"))
+        if state.get("version") != 1 or state.get("request") != request:
+            raise ValueError(
+                "Checkpoint belongs to different parameters; use a new checkpoint and output"
+            )
+        return state
+    windows = [
+        [start.isoformat(), end.isoformat(), expected]
+        for start, end, expected in split_windows(*date_range(start_date, end_date))
+    ]
+    state = {"version": 1, "request": request, "windows": windows, "completed": 0}
+    save_checkpoint(path, state)
+    return state
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--start", required=True, help="Inclusive UTC date: YYYY-MM-DD")
@@ -111,12 +146,34 @@ def main():
         type=Path,
         help="First output file (.geojson.gz); extra batches get numbered filenames",
     )
+    parser.add_argument(
+        "--checkpoint",
+        type=Path,
+        help="Save/resume batch progress (requires --output; one writer only)",
+    )
     args = parser.parse_args()
+    if args.checkpoint is not None and args.output is None:
+        parser.error("--checkpoint requires --output")
     try:
+        state = None
+        if args.checkpoint is not None:
+            if args.checkpoint.resolve() == args.output.resolve():
+                raise ValueError("Checkpoint and output must be different files")
+            state = prepare_checkpoint(
+                args.checkpoint, args.start, args.end, args.output
+            )
+            windows = (
+                (datetime.fromisoformat(start), datetime.fromisoformat(end), expected)
+                for start, end, expected in state["windows"]
+            )
+        else:
+            windows = split_windows(*date_range(args.start, args.end))
         total = 0
-        for index, (start, end, expected) in enumerate(
-            split_windows(*date_range(args.start, args.end)), start=1
-        ):
+        for index, (start, end, expected) in enumerate(windows, start=1):
+            if state is not None and index <= state["completed"]:
+                print(f"Skipped completed batch {index}")
+                total += expected
+                continue
             payload = fetch_window(start, end)
             count = len(payload["features"])
             if count != expected:
@@ -128,11 +185,14 @@ def main():
                     else args.output.with_stem(f"{args.output.stem}.part-{index:04d}")
                 )
                 save_response(payload, output)
+                if state is not None:
+                    state["completed"] = index
+                    save_checkpoint(args.checkpoint, state)
                 print(f"Saved compressed response to {output}")
             total += count
     except (ValueError, OSError, requests.RequestException) as exc:
         parser.exit(1, f"Historical download failed: {exc}\n")
-    print(f"Fetched {total:,} earthquake records")
+    print(f"Total earthquake records: {total:,}")
 
 
 if __name__ == "__main__":

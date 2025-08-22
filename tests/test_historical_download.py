@@ -126,7 +126,7 @@ def test_cli_saves_response_when_output_is_provided(tmp_path, capsys):
     ):
         with gzip.open(path, "rt", encoding="utf-8") as handle:
             assert json.load(handle) == expected
-    assert "Fetched 2 earthquake records" in capsys.readouterr().out
+    assert "Total earthquake records: 2" in capsys.readouterr().out
 
 
 def test_oversized_windows_split_recursively_without_gaps_or_overlap():
@@ -221,3 +221,103 @@ def test_permanent_http_failure_is_not_retried():
                 request_with_retries("https://example.test", {})
     get.assert_called_once()
     sleep.assert_not_called()
+
+
+def run_checkpoint_cli(output, checkpoint, start="2026-01-01", end="2026-01-02"):
+    with patch(
+        "sys.argv",
+        [
+            "historical_download",
+            "--start",
+            start,
+            "--end",
+            end,
+            "--output",
+            str(output),
+            "--checkpoint",
+            str(checkpoint),
+        ],
+    ):
+        main()
+
+
+def test_checkpoint_resumes_saved_plan_after_interruption(tmp_path):
+    from datetime import timedelta
+
+    start, end = date_range("2026-01-01", "2026-01-02")
+    midpoint = start + timedelta(hours=12)
+    output, checkpoint = tmp_path / "events.geojson.gz", tmp_path / "progress.json"
+    payload = {"type": "FeatureCollection", "features": [{"id": "example"}]}
+    with patch(
+        "ingestion.historical_download.split_windows",
+        return_value=[(start, midpoint, 1), (midpoint, end, 1)],
+    ):
+        with patch(
+            "ingestion.historical_download.fetch_window",
+            side_effect=[payload, requests.Timeout("interrupted")],
+        ):
+            with pytest.raises(SystemExit) as stopped:
+                run_checkpoint_cli(output, checkpoint)
+    assert stopped.value.code == 1
+    assert json.loads(checkpoint.read_text())["completed"] == 1
+    assert output.exists()
+    second_output = output.with_stem("events.geojson.part-0002")
+    assert not second_output.exists()
+
+    with patch(
+        "ingestion.historical_download.split_windows",
+        side_effect=AssertionError("Replanned saved windows"),
+    ):
+        with patch(
+            "ingestion.historical_download.fetch_window", return_value=payload
+        ) as fetch:
+            run_checkpoint_cli(output, checkpoint)
+    fetch.assert_called_once_with(midpoint, end)
+    assert json.loads(checkpoint.read_text())["completed"] == 2
+    assert second_output.exists()
+    with patch(
+        "ingestion.historical_download.requests.get",
+        side_effect=AssertionError("Unexpected network request"),
+    ):
+        run_checkpoint_cli(output, checkpoint)
+
+
+@pytest.mark.parametrize("change", ["start", "end", "output"])
+def test_checkpoint_rejects_different_request_parameters(tmp_path, change):
+    output, checkpoint = tmp_path / "events.geojson.gz", tmp_path / "progress.json"
+    window = (*date_range("2026-01-01", "2026-01-02"), 0)
+    with patch("ingestion.historical_download.split_windows", return_value=[window]):
+        with patch(
+            "ingestion.historical_download.fetch_window", return_value={"features": []}
+        ):
+            run_checkpoint_cli(output, checkpoint)
+    kwargs = (
+        {"start": "2025-12-31"}
+        if change == "start"
+        else {"end": "2026-01-03"}
+        if change == "end"
+        else {}
+    )
+    if change == "output":
+        output = tmp_path / "other.geojson.gz"
+    with patch("ingestion.historical_download.requests.get") as get:
+        with pytest.raises(SystemExit) as stopped:
+            run_checkpoint_cli(output, checkpoint, **kwargs)
+    assert stopped.value.code == 1
+    get.assert_not_called()
+
+
+def test_failed_file_save_does_not_advance_checkpoint(tmp_path):
+    output, checkpoint = tmp_path / "events.geojson.gz", tmp_path / "progress.json"
+    window = (*date_range("2026-01-01", "2026-01-02"), 0)
+    with patch("ingestion.historical_download.split_windows", return_value=[window]):
+        with patch(
+            "ingestion.historical_download.fetch_window", return_value={"features": []}
+        ):
+            with patch(
+                "ingestion.historical_download.save_response",
+                side_effect=OSError("disk full"),
+            ):
+                with pytest.raises(SystemExit):
+                    run_checkpoint_cli(output, checkpoint)
+    assert json.loads(checkpoint.read_text())["completed"] == 0
