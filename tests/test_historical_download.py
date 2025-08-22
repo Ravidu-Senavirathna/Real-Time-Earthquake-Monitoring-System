@@ -1,9 +1,11 @@
 from unittest.mock import Mock, patch
+import gzip
+import json
 
 import pytest
 import requests
 
-from ingestion.historical_download import fetch_range
+from ingestion.historical_download import fetch_range, main, save_response
 
 
 def test_fetch_preserves_response_and_requests_exact_utc_range():
@@ -60,3 +62,42 @@ def test_invalid_response_is_rejected():
     with patch("ingestion.historical_download.requests.get", return_value=response):
         with pytest.raises(ValueError, match="FeatureCollection"):
             fetch_range("2026-01-01", "2026-01-02")
+
+
+def test_saved_response_roundtrips_all_source_fields(tmp_path):
+    payload = {
+        "type": "FeatureCollection",
+        "metadata": {"count": 1},
+        "features": [{"id": "example", "properties": {"place": "日本", "mag": None}}],
+    }
+    output = tmp_path / "raw" / "sample.geojson.gz"
+    assert save_response(payload, output) == output
+    assert output.read_bytes().startswith(b"\x1f\x8b")
+    with gzip.open(output, "rt", encoding="utf-8") as handle:
+        assert json.load(handle) == payload
+    with pytest.raises(FileExistsError):
+        save_response({"features": []}, output)
+    with gzip.open(output, "rt", encoding="utf-8") as handle:
+        assert json.load(handle) == payload
+
+
+def test_cli_saves_response_when_output_is_provided(tmp_path, capsys):
+    output = tmp_path / "sample.geojson.gz"
+    payload = {"type": "FeatureCollection", "features": []}
+    with patch(
+        "sys.argv",
+        [
+            "historical_download",
+            "--start",
+            "2026-01-01",
+            "--end",
+            "2026-01-02",
+            "--output",
+            str(output),
+        ],
+    ):
+        with patch("ingestion.historical_download.fetch_range", return_value=payload):
+            main()
+    with gzip.open(output, "rt", encoding="utf-8") as handle:
+        assert json.load(handle) == payload
+    assert "Saved compressed response" in capsys.readouterr().out

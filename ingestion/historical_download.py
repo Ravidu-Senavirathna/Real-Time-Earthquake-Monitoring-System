@@ -2,6 +2,9 @@
 
 import argparse
 from datetime import datetime, timedelta, timezone
+import gzip
+import json
+from pathlib import Path
 
 import requests
 
@@ -40,16 +43,34 @@ def fetch_range(start_date, end_date):
     return payload
 
 
+def save_response(payload, output):
+    """Save the source response as gzip JSON, refusing to overwrite existing files."""
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(output, "xt", encoding="utf-8") as handle:
+        json.dump(payload, handle, allow_nan=False)
+    return output
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--start", required=True, help="Inclusive UTC date: YYYY-MM-DD")
     parser.add_argument("--end", required=True, help="Exclusive UTC date: YYYY-MM-DD")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Save to a new compressed GeoJSON file (.geojson.gz)",
+    )
     args = parser.parse_args()
     try:
         payload = fetch_range(args.start, args.end)
-    except (ValueError, requests.RequestException) as exc:
-        parser.exit(1, f"Fetch failed: {exc}\n")
+        if args.output is not None:
+            save_response(payload, args.output)
+    except (ValueError, OSError, requests.RequestException) as exc:
+        parser.exit(1, f"Historical download failed: {exc}\n")
     print(f"Fetched {len(payload['features']):,} earthquake records")
+    if args.output is not None:
+        print(f"Saved compressed response to {args.output}")
 
 
 if __name__ == "__main__":
