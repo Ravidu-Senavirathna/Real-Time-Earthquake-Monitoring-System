@@ -5,7 +5,14 @@ import json
 import pytest
 import requests
 
-from ingestion.historical_download import fetch_range, main, save_response
+from ingestion.historical_download import (
+    date_range,
+    fetch_range,
+    main,
+    request_params,
+    save_response,
+    split_windows,
+)
 
 
 def test_fetch_preserves_response_and_requests_exact_utc_range():
@@ -83,7 +90,19 @@ def test_saved_response_roundtrips_all_source_fields(tmp_path):
 
 def test_cli_saves_response_when_output_is_provided(tmp_path, capsys):
     output = tmp_path / "sample.geojson.gz"
-    payload = {"type": "FeatureCollection", "features": []}
+    payloads = [
+        {"type": "FeatureCollection", "features": [{"id": name}]}
+        for name in ["first", "second"]
+    ]
+    responses = [
+        Mock(text="2"),
+        Mock(text="1"),
+        Mock(status_code=200),
+        Mock(text="1"),
+        Mock(status_code=200),
+    ]
+    responses[2].json.return_value = payloads[0]
+    responses[4].json.return_value = payloads[1]
     with patch(
         "sys.argv",
         [
@@ -96,8 +115,55 @@ def test_cli_saves_response_when_output_is_provided(tmp_path, capsys):
             str(output),
         ],
     ):
-        with patch("ingestion.historical_download.fetch_range", return_value=payload):
-            main()
-    with gzip.open(output, "rt", encoding="utf-8") as handle:
-        assert json.load(handle) == payload
-    assert "Saved compressed response" in capsys.readouterr().out
+        with patch("ingestion.historical_download.MAX_EVENTS", 1):
+            with patch(
+                "ingestion.historical_download.requests.get", side_effect=responses
+            ):
+                main()
+    for path, expected in zip(
+        [output, output.with_stem("sample.geojson.part-0002")], payloads
+    ):
+        with gzip.open(path, "rt", encoding="utf-8") as handle:
+            assert json.load(handle) == expected
+    assert "Fetched 2 earthquake records" in capsys.readouterr().out
+
+
+def test_oversized_windows_split_recursively_without_gaps_or_overlap():
+    start, end = date_range("2026-01-01", "2026-01-02")
+    responses = [Mock(text=str(count)) for count in [40001, 20001, 10000, 10001, 20000]]
+    with patch("ingestion.historical_download.requests.get", side_effect=responses):
+        windows = list(split_windows(start, end))
+    assert len(windows) == 3
+    assert windows[0][0] == start
+    assert windows[-1][1] == end
+    assert all(expected <= 20000 for _, _, expected in windows)
+    for left, right in zip(windows, windows[1:]):
+        assert left[1] == right[0]
+        left_end = request_params(left[0], left[1])["endtime"]
+        right_start = request_params(right[0], right[1])["starttime"]
+        from datetime import datetime, timedelta
+
+        assert datetime.fromisoformat(right_start) - datetime.fromisoformat(
+            left_end
+        ) == timedelta(milliseconds=1)
+
+
+@pytest.mark.parametrize("count", [0, 20000])
+def test_empty_and_exact_limit_windows_are_not_split(count):
+    start, end = date_range("2026-01-01", "2026-01-02")
+    with patch(
+        "ingestion.historical_download.requests.get", return_value=Mock(text=str(count))
+    ) as get:
+        assert list(split_windows(start, end)) == [(start, end, count)]
+        get.assert_called_once()
+
+
+def test_unsplittable_window_stops_instead_of_looping():
+    from datetime import timedelta
+
+    start, _ = date_range("2026-01-01", "2026-01-02")
+    with patch(
+        "ingestion.historical_download.requests.get", return_value=Mock(text="20001")
+    ):
+        with pytest.raises(ValueError, match="one-millisecond"):
+            list(split_windows(start, start + timedelta(milliseconds=1)))
