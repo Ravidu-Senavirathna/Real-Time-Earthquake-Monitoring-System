@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime, timedelta, timezone
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -113,6 +114,11 @@ def save_checkpoint(path, state):
         temporary.unlink(missing_ok=True)
 
 
+def file_checksum(path):
+    with path.open("rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
+
+
 def prepare_checkpoint(path, start_date, end_date, output):
     request = {
         "start": start_date,
@@ -132,7 +138,13 @@ def prepare_checkpoint(path, start_date, end_date, output):
         [start.isoformat(), end.isoformat(), expected]
         for start, end, expected in split_windows(*date_range(start_date, end_date))
     ]
-    state = {"version": 1, "request": request, "windows": windows, "completed": 0}
+    state = {
+        "version": 1,
+        "request": request,
+        "windows": windows,
+        "completed": 0,
+        "checksums": {},
+    }
     save_checkpoint(path, state)
     return state
 
@@ -170,7 +182,19 @@ def main():
             windows = split_windows(*date_range(args.start, args.end))
         total = 0
         for index, (start, end, expected) in enumerate(windows, start=1):
+            output = args.output
+            if output is not None and index > 1:
+                output = output.with_stem(f"{output.stem}.part-{index:04d}")
             if state is not None and index <= state["completed"]:
+                expected_checksum = state.get("checksums", {}).get(str(index))
+                if expected_checksum is None:
+                    raise ValueError(
+                        "Completed batch has no recorded checksum; use a new checkpoint and output"
+                    )
+                if not output.is_file() or file_checksum(output) != expected_checksum:
+                    raise ValueError(
+                        f"Saved batch is missing or changed: {output}. Restore it or use a new checkpoint and output"
+                    )
                 print(f"Skipped completed batch {index}")
                 total += expected
                 continue
@@ -179,13 +203,11 @@ def main():
             if count != expected:
                 raise ValueError("Catalog count changed or response is incomplete")
             if args.output is not None:
-                output = (
-                    args.output
-                    if index == 1
-                    else args.output.with_stem(f"{args.output.stem}.part-{index:04d}")
-                )
                 save_response(payload, output)
                 if state is not None:
+                    state.setdefault("checksums", {})[str(index)] = file_checksum(
+                        output
+                    )
                     state["completed"] = index
                     save_checkpoint(args.checkpoint, state)
                 print(f"Saved compressed response to {output}")

@@ -321,3 +321,36 @@ def test_failed_file_save_does_not_advance_checkpoint(tmp_path):
                 with pytest.raises(SystemExit):
                     run_checkpoint_cli(output, checkpoint)
     assert json.loads(checkpoint.read_text())["completed"] == 0
+
+
+@pytest.mark.parametrize(
+    "problem", ["missing_file", "changed_file", "legacy_checkpoint"]
+)
+def test_resume_refuses_unverified_saved_batches(tmp_path, problem, capsys):
+    output, checkpoint = tmp_path / "events.geojson.gz", tmp_path / "progress.json"
+    window = (*date_range("2026-01-01", "2026-01-02"), 1)
+    payload = {"type": "FeatureCollection", "features": [{"id": "original"}]}
+    with patch("ingestion.historical_download.split_windows", return_value=[window]):
+        with patch("ingestion.historical_download.fetch_window", return_value=payload):
+            run_checkpoint_cli(output, checkpoint)
+    state = json.loads(checkpoint.read_text())
+    assert len(state["checksums"]["1"]) == 64
+    if problem == "missing_file":
+        output.unlink()
+    elif problem == "changed_file":
+        # A valid gzip with the same count must still be detected as changed.
+        with gzip.open(output, "wt", encoding="utf-8") as handle:
+            json.dump(
+                {"type": "FeatureCollection", "features": [{"id": "modified"}]}, handle
+            )
+    else:
+        del state["checksums"]
+        checkpoint.write_text(json.dumps(state))
+    before = checkpoint.read_bytes()
+    with patch("ingestion.historical_download.requests.get") as get:
+        with pytest.raises(SystemExit) as stopped:
+            run_checkpoint_cli(output, checkpoint)
+    assert stopped.value.code == 1
+    get.assert_not_called()
+    assert checkpoint.read_bytes() == before
+    assert "new checkpoint and output" in capsys.readouterr().err
